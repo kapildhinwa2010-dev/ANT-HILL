@@ -52,7 +52,7 @@ Outputs: 📊 mold_report.json, 🧊 mold_map.npz, 🌐 mold_map.html
 - 💀 **Dead zones** - layers/positions the liquid never reached: no flow, no function
 - 🌊 **Flow breaks** - where occupancy dies between two layers
 - 🧠 **Thought map** - what the model is computing at each spot (logit lens)
-- 🗺️ **The full naksha** - one 3D picture instead of 24 flat plots
+- 🗺️ **The full map** - one 3D picture instead of 24 flat plots
 
 ## 🧪 Tests
 
