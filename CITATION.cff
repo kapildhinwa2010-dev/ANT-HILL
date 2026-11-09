@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use ANT-HILL in your research, please cite it as below."
+title: "ANT-HILL: pour, freeze and snap - a 3D topological mold of a language model"
+authors:
+  - family-names: Dhinwa
+    given-names: Kapil
+version: 0.1.0
+date-released: "2026-11-09"
+license: MIT
+repository-code: "https://github.com/kapildhinwa2010-dev/ANT-HILL"
+abstract: "A bounded harness that pours a topological liquid into a language model's input gate, measures flow sensitivity at every layer and position, freezes the result into a binary 3D occupancy mold, and labels every occupied voxel with a logit-lens readout. Outputs a 3D interactive viewer and a diagnosis report."
