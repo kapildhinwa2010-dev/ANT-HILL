@@ -15,7 +15,8 @@ full 3D structure. Here:
 
 Artifacts: mold_report.json, mold_map.npz, mold_map.html (3D viewer).
 
-GPU-first, CPU-supported. No training. Bounded evaluation.
+CPU execution currently; GPU placement is not implemented. No training.
+Bounded evaluation.
 """
 
 __version__ = "0.1.0"
@@ -58,17 +59,21 @@ def record_activations(model, ids=None, embeds=None):
 
     for i, lyr in enumerate(layers):
         handles.append(lyr.register_forward_hook(make_hook(i)))
-    if embeds is None:
-        model(ids)
-    else:
-        model(inputs_embeds=embeds)
-    for h in handles:
-        h.remove()
+    try:
+        if embeds is None:
+            model(ids)
+        else:
+            model(inputs_embeds=embeds)
+    finally:
+        for h in handles:
+            h.remove()
     return {i: torch.cat(v, dim=0)[0] for i, v in acts.items()}
 
 
 def pour(model, tok, prompt, n_drops=8, eps=0.05, max_len=48, seed=0):
     """Drop random liquid at the input gate; measure flow sensitivity per layer."""
+    if n_drops <= 0:
+        raise ValueError("n_drops must be greater than zero")
     ids = tok(prompt, return_tensors="pt").input_ids[:, :max_len]
     emb = model.get_input_embeddings()(ids)
     base = record_activations(model, ids=ids)
@@ -89,8 +94,12 @@ def pour(model, tok, prompt, n_drops=8, eps=0.05, max_len=48, seed=0):
 
 def freeze(base, intensity, z_clusters=8, occupancy_percentile=80, frozen_thresh=0.3):
     """Threshold flow into a binary 3D mold: (layers x positions x channel clusters)."""
+    if z_clusters <= 0:
+        raise ValueError("z_clusters must be greater than zero")
     keys = sorted(intensity.keys())
     L, T = len(keys), intensity[keys[0]].shape[0]
+    if z_clusters > base[keys[0]].shape[1]:
+        raise ValueError("z_clusters cannot exceed the hidden dimension")
     occ = torch.zeros(L, T)
     inten3 = torch.zeros(L, T, z_clusters)
     for k, i in enumerate(keys):
@@ -101,7 +110,11 @@ def freeze(base, intensity, z_clusters=8, occupancy_percentile=80, frozen_thresh
         else:
             occ[k] = 1.0
         B = base[i].abs()
-        chunks = torch.stack([c.mean(dim=1) for c in B.chunk(z_clusters, dim=1)], dim=1)
+        if z_clusters > B.shape[1]:
+            raise ValueError("z_clusters cannot exceed the hidden dimension")
+        # Unlike chunk(), tensor_split returns exactly z_clusters slices for
+        # uneven widths as long as each requested slice can contain a channel.
+        chunks = torch.stack([c.mean(dim=1) for c in torch.tensor_split(B, z_clusters, dim=1)], dim=1)
         inten3[k] = chunks
     inten3 = inten3 / (inten3.max() + 1e-12)
     frozen = (inten3 * occ.unsqueeze(-1) > frozen_thresh).float()
@@ -154,6 +167,8 @@ def render_html(frozen, labels, out_path="mold_map.html"):
     ys = json.dumps([p[1] for p in pts])
     zs = json.dumps([p[2] for p in pts])
     txt = json.dumps(["layer " + str(p[0]) + " | pos " + str(p[1]) + " | z " + str(p[2]) + " | " + p[3] for p in pts])
+    # Prevent model/tokenizer-controlled strings from terminating the inline script.
+    txt = txt.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     head = "<!DOCTYPE html>" + chr(10) + "<html><head><meta charset='utf-8'><title>ANT-HILL mold map</title>" + chr(10)
     head += "<script src='https://cdn.plot.ly/plotly-2.27.0.min.js'></script></head><body>" + chr(10)
     head += "<h2>ANT-HILL - frozen topological mold</h2><div id='mold'></div><script>" + chr(10)

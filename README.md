@@ -26,13 +26,15 @@ complete 3D structure - ANT-HILL does this to a language model:
 
 ## ⚡ Install
 
-GPU (default):
+ANT-HILL currently executes model inference on the CPU; it does not move the
+model or input tensors to a GPU. Install a PyTorch build appropriate for your
+environment, but a GPU-enabled build alone will not enable GPU execution.
 
     pip install torch
     pip install -r requirements.txt
 
 <details>
-<summary>🖥️ CPU-only variant</summary>
+<summary>🖥️ Explicit CPU-only PyTorch variant</summary>
 
     pip install --index-url https://download.pytorch.org/whl/cpu torch
     pip install -r requirements.txt
