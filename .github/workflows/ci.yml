@@ -28,7 +28,7 @@ jobs:
           pytest -q | tee ci_logs/pytest.log
       - name: Upload test log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-log
           path: ci_logs/pytest.log
